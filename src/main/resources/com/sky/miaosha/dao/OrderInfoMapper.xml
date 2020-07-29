@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.miaosha.dao.OrderInfoMapper">
+  <resultMap id="BaseResultMap" type="com.sky.miaosha.dataobject.OrderInfo">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="user_id" jdbcType="INTEGER" property="userId" />
+    <result column="item_id" jdbcType="INTEGER" property="itemId" />
+    <result column="item_price" jdbcType="DOUBLE" property="itemPrice" />
+    <result column="amount" jdbcType="INTEGER" property="amount" />
+    <result column="order_price" jdbcType="DOUBLE" property="orderPrice" />
+    <result column="promo_id" jdbcType="INTEGER" property="promoId" />
+  </resultMap>
+</mapper>

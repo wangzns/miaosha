@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.miaosha.dao.PromoMapper">
+  <resultMap id="BaseResultMap" type="com.sky.miaosha.dataobject.Promo">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="promo_name" jdbcType="VARCHAR" property="promoName" />
+    <result column="start_date" jdbcType="TIMESTAMP" property="startDate" />
+    <result column="end_date" jdbcType="TIMESTAMP" property="endDate" />
+    <result column="item_id" jdbcType="INTEGER" property="itemId" />
+    <result column="promo_item_price" jdbcType="DOUBLE" property="promoItemPrice" />
+  </resultMap>
+
+  <select id="selectByItemId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    *
+    from promo
+    where item_id = #{itemId,jdbcType=INTEGER}
+  </select>
+
+
+</mapper>

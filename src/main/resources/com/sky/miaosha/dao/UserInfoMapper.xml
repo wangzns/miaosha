@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.miaosha.dao.UserInfoMapper">
+  <resultMap id="BaseResultMap" type="com.sky.miaosha.dataobject.UserInfo">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="gender" jdbcType="TINYINT" property="gender" />
+    <result column="age" jdbcType="INTEGER" property="age" />
+    <result column="telphone" jdbcType="VARCHAR" property="telphone" />
+    <result column="register_mode" jdbcType="VARCHAR" property="registerMode" />
+    <result column="third_party_id" jdbcType="VARCHAR" property="thirdPartyId" />
+  </resultMap>
+
+  <select id="selectByTelphone"  resultMap="BaseResultMap">
+    select
+    *
+    from user_info
+    where telphone = #{telphone,jdbcType=VARCHAR}
+  </select>
+
+
+</mapper>

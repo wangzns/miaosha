@@ -1,0 +1,30 @@
+
+server:
+  port: 8994
+  # tomcat调优
+  tomcat:
+    accept-count: 1000  # 等待队列长度，默认100
+    max-connections: 10000 # 最大可被连接数 默认10000
+    max-threads: 300 # 线程池最大工作线程数 默认200
+    min-spare-threads: 100 # 最小工作线程数 默认10
+    # 默认配置下，连接数超过10000将会被拒绝连接。 触发的请求超过200+100后拒绝处理
+
+spring:
+  application:
+    name: miaosha
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1/miaosha?useSSL=false&characterEncoding=UTF-8
+    username: root
+    password: 212413
+
+
+mybatis:
+  mapper-locations: classpath:com/sky/miaosha/dao/**.xml
+
+
+
+
+
+

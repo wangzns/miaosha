@@ -7,6 +7,8 @@
     <link href="../components.css" rel="stylesheet" type="text/css"/>
     <link href="../login.css" rel="stylesheet" type="text/css"/>
     <script src="../jquery-1.11.0.min.js" type="text/javascript"></script>
+    <script src="../gethost.js" type="text/javascript"></script>
+
 </head>
 
 <body class="login">
@@ -95,7 +97,7 @@
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
-                url: "/user/register",
+                url: g_host + "/user/register",
                 data: {
                     "telphone": telphone,
                     "password": password,
@@ -108,7 +110,7 @@
                 success: function (data) {
                     if (data.code == "0") {
                         alert("注册成功！");
-                        window.location.href = "/login";
+                        window.location.href = g_host + "/login";
                     } else {
                         alert("注册失败，原因是" + data.msg);
                     }

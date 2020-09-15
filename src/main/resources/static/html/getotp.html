@@ -41,7 +41,7 @@
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
-                url: g_host + "/user/getotp",
+                url: "/user/getotp",
                 data: {
                     "telphone": $("#telphone").val(),
                 },
@@ -49,7 +49,7 @@
                 success: function (data) {
                     if (data.code == "0") {
                         alert("otp已经发送到您的手机上，请注意查收！")
-                        window.location.href = g_host + "/register";
+                        window.location.href =  "/register";
                     } else {
                         alert("otp发送失败，原因是" + data.msg);
                     }

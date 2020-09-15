@@ -4,8 +4,13 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
 
-public class UserModel {
+public class UserModel implements Serializable {
+
+
+    private static final long serialVersionUID = 5080941756216533272L;
+
 
     private Integer id;
 

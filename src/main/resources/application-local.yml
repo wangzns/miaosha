@@ -7,3 +7,11 @@ spring:
     url: jdbc:mysql://127.0.0.1/miaosha?useSSL=false&characterEncoding=UTF-8
     username: root
     password: 123456
+
+server:
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: /developer/tomcatlog
+      pattern: "%h %l %u %t %r %s %b %D %{Cookie}i %{User-Agent}i %{a}r"
+

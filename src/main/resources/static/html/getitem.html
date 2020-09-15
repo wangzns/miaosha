@@ -77,7 +77,7 @@
         //发送请求获取商品详情页
         $.ajax({
             type: "GET",
-            url: g_host + "/item/getItem",
+            url: "/item/getItem",
             data: {
                 "id": getParam("id"),
             },
@@ -101,7 +101,7 @@
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
-                url: g_host + "/order/createorder",
+                url: "/order/createorder",
                 data: {
                     "itemId": g_itemVO.id,
                     "amount": 1,
@@ -115,7 +115,7 @@
                     } else {
                         alert("下单失败，原因是" + data.msg);
                         if (data.code == 100005) {
-                            window.location.href = g_host + "/login";
+                            window.location.href =  "/login";
                         }
                     }
                 },

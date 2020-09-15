@@ -1,15 +1,18 @@
 package com.sky.miaosha.controller;
 
 import com.alibaba.druid.util.StringUtils;
-import com.sky.miaosha.vo.UserVO;
+import com.alibaba.fastjson.JSON;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
 import com.sky.miaosha.service.UserService;
 import com.sky.miaosha.service.model.UserModel;
 import com.sky.miaosha.utils.Convert;
+import com.sky.miaosha.vo.UserVO;
 import com.sky.miaosha.vo.global.ResponseVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import sun.misc.BASE64Encoder;
@@ -19,6 +22,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Controller
 @RequestMapping("/user")
@@ -31,6 +36,9 @@ public class UserController  {
 
     @Autowired
     private HttpServletRequest httpServletRequest;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     /*根据id获取用户信息*/
     @RequestMapping(value = "/get", method = RequestMethod.POST,  consumes = {"application/x-www-form-urlencoded"})
@@ -99,10 +107,17 @@ public class UserController  {
         }
         //校验用户登录是否合法
         UserModel userModel = userService.validateLogin(telphone, this.EncodeByMd5(password));
-        //把用户信息放入session
-        this.httpServletRequest.getSession().setAttribute("IS_LOGIN", true);
-        this.httpServletRequest.getSession().setAttribute("LOGIN_USER", userModel);
-        return ResponseVO.success();
+        log.info("登录成功, 请求sessionId为={}, 请求地址为={}", httpServletRequest.getRequestedSessionId(),
+                httpServletRequest.getRemoteAddr());
+        // 把用户信息放入session
+//        this.httpServletRequest.getSession().setAttribute("IS_LOGIN", true);
+//        this.httpServletRequest.getSession().setAttribute("LOGIN_USER", userModel);
+
+        // 使用token的方式管理分布式session
+        String uuid = UUID.randomUUID().toString();
+        String token = uuid.replace("-", "");
+        redisTemplate.opsForValue().set(token, JSON.toJSONString(userModel), 1, TimeUnit.HOURS);
+        return ResponseVO.success(token);
 
     }
 

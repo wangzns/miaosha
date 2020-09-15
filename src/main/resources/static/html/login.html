@@ -43,7 +43,7 @@
 
         //注册
         $("#register").on("click", function () {
-            window.location.href = g_host + "/getotp";
+            window.location.href =  "/getotp";
         });
         //登录
         $("#login").on("click", function () {
@@ -60,7 +60,7 @@
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
-                url: g_host + "/user/login",
+                url:  "/user/login",
                 data: {
                     "telphone": telphone,
                     "password": password,
@@ -69,7 +69,7 @@
                 success: function (data) {
                     if (data.code == "0") {
                         alert("登录成功！")
-                        window.location.href = g_host + "/listitem";
+                        window.location.href =  "/listitem";
                     } else {
                         alert("登录失败，原因是" + data.msg);
                     }

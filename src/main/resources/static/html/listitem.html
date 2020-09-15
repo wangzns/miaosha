@@ -41,7 +41,7 @@
     jQuery(document).ready(function () {
         $.ajax({
             type: "GET",
-            url: g_host + "/item/list",
+            url: "/item/list",
             xhrFields: {withCredentials: true},
             success: function (data) {
                 if (data.code == "0") {
@@ -73,7 +73,7 @@
             $("#container").append($(dom));
             //点击链接跳转到商品详情页
             $("#itemDetail" + itemVO.id).on("click", function (e) {
-                window.location.href = g_host + "/getitem?id=" + $(this).data("id");
+                window.location.href =  "/getitem?id=" + $(this).data("id");
             });
         }
 

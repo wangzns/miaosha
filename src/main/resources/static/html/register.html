@@ -97,7 +97,7 @@
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
-                url: g_host + "/user/register",
+                url:  "/user/register",
                 data: {
                     "telphone": telphone,
                     "password": password,
@@ -110,7 +110,7 @@
                 success: function (data) {
                     if (data.code == "0") {
                         alert("注册成功！");
-                        window.location.href = g_host + "/login";
+                        window.location.href =  "/login";
                     } else {
                         alert("注册失败，原因是" + data.msg);
                     }

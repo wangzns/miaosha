@@ -1,17 +1,23 @@
 package com.sky.miaosha.controller;
 
 
-import com.sky.miaosha.vo.ItemVO;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.sky.miaosha.service.CacheService;
 import com.sky.miaosha.service.ItemService;
 import com.sky.miaosha.service.model.ItemModel;
 import com.sky.miaosha.utils.Convert;
+import com.sky.miaosha.vo.ItemVO;
 import com.sky.miaosha.vo.global.ResponseVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Controller("item")
@@ -21,6 +27,10 @@ public class ItemController  {
 
     @Autowired
     private ItemService itemService;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private CacheService cacheService;
 
     /**
      * 创建商品
@@ -70,11 +80,32 @@ public class ItemController  {
     @ResponseBody
     public ResponseVO getItem(@RequestParam(name = "id") Integer id) {
 
-        ItemModel itemModel = itemService.getItemById(id);
+        /*
+        * 多级缓存的使用
+        *
+        * 1. 本地热点缓存 ?
+        * 2. redis集中式缓存 ?
+        *
+        * 数据库.
+        * */
 
+        ItemModel itemModel = null;
+        itemModel = (ItemModel)cacheService.getFromCommonCache("item_" + id);
+        if (itemModel == null) {
+            String value = stringRedisTemplate.opsForValue().get("item_" + id);
+            if (StringUtils.isEmpty(value)) {
+                itemModel = itemService.getItemById(id);
+                stringRedisTemplate.opsForValue().set("item_" + id, JSON.toJSONString(itemModel),
+                        30, TimeUnit.MINUTES);
+            } else {
+                itemModel = JSONObject.parseObject(value, ItemModel.class);
+            }
+            cacheService.setCommonCache("item_" + id, itemModel);
+        }
         ItemVO itemVO = Convert.convertItemVOFromItemModel(itemModel);
-
         return ResponseVO.success(itemVO);
     }
+
+
 
 }

@@ -39,7 +39,7 @@ public class CacheServiceImpl implements CacheService {
                 // 最大容纳的缓存节点数，超过该值后按照lru(最近最少使用)策略进行淘汰
                 .maximumSize(100)
                 // 缓存有效时间
-                .expireAfterWrite(60, TimeUnit.SECONDS)
+                .expireAfterWrite(20, TimeUnit.SECONDS)
                 .build();
 
     }

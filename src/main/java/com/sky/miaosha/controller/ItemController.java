@@ -96,7 +96,7 @@ public class ItemController  {
             if (StringUtils.isEmpty(value)) {
                 itemModel = itemService.getItemById(id);
                 stringRedisTemplate.opsForValue().set("item_" + id, JSON.toJSONString(itemModel),
-                        30, TimeUnit.MINUTES);
+                        20, TimeUnit.SECONDS);
             } else {
                 itemModel = JSONObject.parseObject(value, ItemModel.class);
             }

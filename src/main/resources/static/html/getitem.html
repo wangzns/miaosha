@@ -98,10 +98,19 @@
 
         //点击下单按钮发送创建订单请求
         $("#createorder").on("click", function () {
+            var token = window.localStorage["token"];
+            if (token === null || token === undefined || token === "") {
+                alert("还未登录，不能下单");
+                window.location.href =  "/login";
+                return ;
+            }
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
                 url: "/order/createorder",
+                headers: {
+                    "token" : token
+                },
                 data: {
                     "itemId": g_itemVO.id,
                     "amount": 1,

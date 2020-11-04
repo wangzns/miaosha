@@ -69,6 +69,8 @@
                 success: function (data) {
                     if (data.code == "0") {
                         alert("登录成功！")
+                        var tk = data.data;
+                        window.localStorage["token"] = tk;
                         window.location.href =  "/listitem";
                     } else {
                         alert("登录失败，原因是" + data.msg);

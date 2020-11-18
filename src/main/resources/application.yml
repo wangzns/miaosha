@@ -11,7 +11,7 @@ server:
 
 spring:
   profiles:
-    active: online
+    active: local
   redis:
     host: 120.77.247.132
     port: 6379
@@ -28,9 +28,10 @@ spring:
 mybatis:
   mapper-locations: classpath:com/sky/miaosha/dao/**.xml
 
-
-
-
+mq:
+  nameserver:
+    addr: 120.77.247.132:9876
+  topicname: stock
 
 
 

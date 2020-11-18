@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,11 +44,14 @@ public class OrderServiceImpl implements OrderService {
     public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount){
 
         //1:校验下单的商品是否存在、用户是否合法、购买数量是否正确
-        ItemModel itemModel = itemService.getItemById(itemId);
+//        ItemModel itemModel = itemService.getItemById(itemId);
+        ItemModel itemModel = itemService.getItemByIdFromCache(itemId);
+
         if (itemModel == null) {
             throw new BusinessException(ExceptionEnum.PARAM_ERROR, "商品不存在！");
         }
-        UserModel userModel = userService.getUser(userId);
+//        UserModel userModel = userService.getUser(userId);
+        UserModel userModel = userService.getUserFromCache(userId);
         if (userModel == null) {
             throw new BusinessException(ExceptionEnum.PARAM_ERROR, "用户不存在！");
         }
@@ -90,7 +95,7 @@ public class OrderServiceImpl implements OrderService {
 
         //4:增加商品销量
         itemService.increaseSales(itemId, amount);
-
+        // 返回前端
         return orderModel;
     }
 

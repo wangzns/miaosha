@@ -1,5 +1,6 @@
 package com.sky.miaosha.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.sky.miaosha.dao.UserInfoMapper;
 import com.sky.miaosha.dao.UserPasswordMapper;
 import com.sky.miaosha.dataobject.UserInfo;
@@ -15,12 +16,14 @@ import com.sky.miaosha.validator.ValidationTool;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import tk.mybatis.mapper.entity.Example;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -34,6 +37,8 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private ValidationTool validator;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
     /**
      * 根据id获取用户信息
      */
@@ -96,6 +101,18 @@ public class UserServiceImpl implements UserService {
         //对比密码是否匹配
         if (!StringUtils.equals(encrptPassword, userModel.getEncrptPassword())) {
             throw new BusinessException(ExceptionEnum.PASSWORD_NOT_MATCH);
+        }
+        return userModel;
+    }
+
+    @Override
+    public UserModel getUserFromCache(Integer userId) {
+        String s = stringRedisTemplate.opsForValue().get("user_validate_" + userId);
+        UserModel userModel = JSON.parseObject(s, UserModel.class);
+        if (userModel == null) {
+            UserModel user = getUser(userId);
+            stringRedisTemplate.opsForValue().set("user_validate_" + userId, JSON.toJSONString(user), 10, TimeUnit.MINUTES);
+            return user;
         }
         return userModel;
     }

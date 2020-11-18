@@ -1,11 +1,13 @@
 package com.sky.miaosha.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.sky.miaosha.dao.ItemMapper;
 import com.sky.miaosha.dao.ItemStockMapper;
 import com.sky.miaosha.dataobject.Item;
 import com.sky.miaosha.dataobject.ItemStock;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
+import com.sky.miaosha.mq.MyProducer;
 import com.sky.miaosha.service.ItemService;
 import com.sky.miaosha.service.PromoService;
 import com.sky.miaosha.service.model.ItemModel;
@@ -14,10 +16,12 @@ import com.sky.miaosha.utils.Convert;
 import com.sky.miaosha.validator.ValidationResult;
 import com.sky.miaosha.validator.ValidationTool;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +38,12 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private PromoService promoService;
+
+    @Autowired
+    private MyProducer myProducer;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 创建商品
@@ -108,17 +118,57 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
         //返回影响函数 等于0表示减库存失败
-        int affectedRow = itemStockMapper.decreaseStock(itemId, amount);
-        if (affectedRow > 0) {
+//        int affectedRow = itemStockMapper.decreaseStock(itemId, amount);
+//        if (affectedRow > 0) {
+//            return true;
+//        } else {
+//            return false;
+//        }
+        Long num = stringRedisTemplate.opsForValue().increment("promo_item_stock" + itemId, amount * -1);
+        // num: 减少之后的库存
+        if (num >= 0) {
+            // 异步减库存
+//            boolean sendResult = myProducer.asyncReduceStock(itemId, amount);
+//            if (sendResult) {
+//                return true;
+//            } else {
+//                // 消息通知失败， 恢复缓存库存. 保证缓存和DB数据一致性
+//                stringRedisTemplate.opsForValue().increment("promo_item_stock" + itemId, amount);
+//                return false;
+//            }
             return true;
         } else {
+            // 库存不足，下单失败
             return false;
         }
     }
 
     @Override
-    @Transactional
     public void increaseSales(Integer itemId, Integer amount) throws BusinessException {
         itemMapper.increaseSales(itemId, amount);
+    }
+
+    @Override
+    public ItemModel getItemByIdFromCache(Integer itemId) {
+        String s = stringRedisTemplate.opsForValue().get("item_validate_" + itemId);
+        ItemModel itemModel = JSON.parseObject(s, ItemModel.class);
+        if (itemModel != null) {
+            return itemModel;
+        }
+        ItemModel item = getItemById(itemId);
+        stringRedisTemplate.opsForValue().set("item_validate_" + itemId, JSON.toJSONString(item), 10, TimeUnit.MINUTES);
+        return item;
+    }
+
+    @Override
+    public Boolean asyncDecreaseStock(Integer itemId, Integer amount) {
+        boolean sendResult = myProducer.asyncReduceStock(itemId, amount);
+        return sendResult;
+
+    }
+
+    @Override
+    public void increaseStock(Integer itemId, Integer amount) {
+        stringRedisTemplate.opsForValue().increment("promo_item_stock" + itemId, amount);
     }
 }

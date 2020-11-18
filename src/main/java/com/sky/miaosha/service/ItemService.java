@@ -22,4 +22,22 @@ public interface ItemService {
     //商品销量增加
     void increaseSales(Integer itemId, Integer amount);
 
+    /**
+     * 缓存中查询商品活动模型
+     * @param itemId
+     * @return
+     */
+    ItemModel getItemByIdFromCache(Integer itemId);
+
+    /**
+     * 异步更新库存
+     * @param itemId
+     * @param amount
+     */
+    Boolean asyncDecreaseStock(Integer itemId, Integer amount);
+
+    void increaseStock(Integer itemId, Integer amount);
+
+
+
 }

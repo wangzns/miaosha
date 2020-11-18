@@ -31,5 +31,10 @@ public class ResponseVO<T> {
        return ResponseVO.builder().code(0).msg("success").data(data).build();
     };
 
+    public static <T> ResponseVO  fail(String msg) {
+        return ResponseVO.builder().code(-999).msg(msg).build();
+    };
+
+
 
 }

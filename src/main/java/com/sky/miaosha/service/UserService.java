@@ -10,4 +10,5 @@ public interface UserService {
 
     UserModel validateLogin(String telphone, String encrptPassword);
 
+    UserModel getUserFromCache(Integer userId);
 }

@@ -28,6 +28,20 @@ public enum ExceptionEnum implements CommonException {
     ITEM_STOCK_NOT_EXIST(200002, "商品库存不存在"),
     ITEM_STOCK_NOT_ENOUGH(200003, "库存不足"),
 
+    // 300000开头活动相关错误
+    PROMO_NOT_EXIST(300001, "活动不存在"),
+
+    // mq消息
+    MQ_SEND_FAIL(700001, "异步消息投递失败"),
+
+
+
+
+
+
+
+    ;
+
 
     ;
 

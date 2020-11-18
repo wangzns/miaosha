@@ -4,6 +4,7 @@ package com.sky.miaosha.controller;
 import com.alibaba.fastjson.JSON;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
+import com.sky.miaosha.mq.MyProducer;
 import com.sky.miaosha.service.OrderService;
 import com.sky.miaosha.service.model.UserModel;
 import com.sky.miaosha.vo.global.ResponseVO;
@@ -31,6 +32,8 @@ public class OrderController {
     private HttpServletRequest httpServletRequest;
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private MyProducer myProducer;
 
     //封装下单请求
     @RequestMapping(value = "/createorder", method = RequestMethod.POST,  consumes = {"application/x-www-form-urlencoded"})
@@ -52,7 +55,12 @@ public class OrderController {
         }
         UserModel userModel = JSON.parseObject(str, UserModel.class);
         //获取登录的用户信息
-        orderService.createOrder(userModel.getId(), itemId, promoId, amount);
-        return ResponseVO.success();
+//        orderService.createOrder(userModel.getId(), itemId, promoId, amount);
+        Boolean success = myProducer.transactionAsyncRedusceStock(userModel.getId(), itemId, promoId, amount);
+        if (success) {
+            return ResponseVO.success();
+        } else {
+            return ResponseVO.fail("下单失败");
+        }
     }
 }

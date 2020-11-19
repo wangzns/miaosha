@@ -1,7 +1,11 @@
 package com.sky.miaosha.mq;
 
 import com.alibaba.fastjson.JSON;
+import com.sky.miaosha.dao.RocketmqTransactionLogMapper;
+import com.sky.miaosha.dataobject.RocketmqTransactionLog;
+import com.sky.miaosha.exception.enums.StockLogStatusEnum;
 import com.sky.miaosha.service.OrderService;
+import com.sky.miaosha.utils.CommonUtil;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.*;
@@ -18,6 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author : wang zns
@@ -41,6 +46,8 @@ public class MyProducer {
     private String mqNameserverAddr;
     @Value("${mq.topicname}")
     private String topicName;
+    @Autowired
+    private RocketmqTransactionLogMapper rocketmqTransactionLogMapper;
 
 
     /**
@@ -66,19 +73,50 @@ public class MyProducer {
                 Integer itemId = (Integer)args.get("itemId");
                 Integer promoId = (Integer)args.get("promoId");
                 Integer amount = (Integer)args.get("amount");
+                String transactionId = (String)args.get("transactionId");
+
                 try {
-                    orderService.createOrder(userId, itemId, promoId, amount);
+                    orderService.createOrder(userId, itemId, promoId, amount,transactionId);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    RocketmqTransactionLog log = new RocketmqTransactionLog();
+                    log.setTransactionId(transactionId);
+                    RocketmqTransactionLog rocketmqTransactionLog = rocketmqTransactionLogMapper.selectOne(log);
+                    rocketmqTransactionLog.setStatus(StockLogStatusEnum.ROLLBACK.getCode());
+                    // 修改库存流水状态
+                    rocketmqTransactionLogMapper.updateByPrimaryKeySelective(rocketmqTransactionLog);
                     return LocalTransactionState.ROLLBACK_MESSAGE;
                 }
                 // commit本地事务之后， 才允许被消费
                 return LocalTransactionState.COMMIT_MESSAGE;
             }
 
+
+            /**
+             * 检查本地事务状态
+             * @param messageExt
+             * @return
+             */
             @Override
             public LocalTransactionState checkLocalTransaction(MessageExt messageExt) {
-                return null;
+                byte[] body = messageExt.getBody();
+                String str = new String(body);
+                Map<String, Object> map = JSON.parseObject(str, Map.class);
+                String transactionId = (String) map.get("transactionId");
+                RocketmqTransactionLog cond = new RocketmqTransactionLog();
+                cond.setTransactionId(transactionId);
+                RocketmqTransactionLog rocketmqTransactionLog = rocketmqTransactionLogMapper.selectOne(cond);
+                if (rocketmqTransactionLog == null) {
+                    return LocalTransactionState.UNKNOW;
+                } else {
+                    int status = rocketmqTransactionLog.getStatus().intValue();
+                    if (status == StockLogStatusEnum.INIT.getCode()) {
+                        return LocalTransactionState.UNKNOW;
+                    } else if (status == StockLogStatusEnum.COMMIT.getCode()) {
+                        return LocalTransactionState.COMMIT_MESSAGE;
+                    }
+                }
+                return LocalTransactionState.ROLLBACK_MESSAGE;
             }
         });
         transactionMQProducer.start();;
@@ -91,15 +129,21 @@ public class MyProducer {
      * @param amount
      * @return
      */
-    public boolean transactionAsyncRedusceStock(Integer userId, Integer itemId, Integer promoId, Integer amount) {
+    public boolean transactionAsyncRedusceStock(Integer userId, Integer itemId, Integer promoId, Integer amount, String transactionId) {
         Map<String, Object> bodyMap = new HashMap<>();
+
+
         bodyMap.put("itemId", itemId);
         bodyMap.put("amount", amount);
+        bodyMap.put("transactionId",transactionId);
+
         Map<String ,Object> argsMap = new HashMap<>();
         argsMap.put("itemId", itemId);
         argsMap.put("userId", userId);
         argsMap.put("promoId", promoId);
         argsMap.put("amount", amount);
+        argsMap.put("transactionId", transactionId);
+
         Message message = new Message(topicName, "increase", JSON.toJSON(bodyMap).toString().getBytes(Charset.forName("UTF-8")));
         try {
             TransactionSendResult transactionSendResult = transactionMQProducer.sendMessageInTransaction(message, argsMap);

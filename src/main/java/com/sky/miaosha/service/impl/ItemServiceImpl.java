@@ -3,15 +3,19 @@ package com.sky.miaosha.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.sky.miaosha.dao.ItemMapper;
 import com.sky.miaosha.dao.ItemStockMapper;
+import com.sky.miaosha.dao.RocketmqTransactionLogMapper;
 import com.sky.miaosha.dataobject.Item;
 import com.sky.miaosha.dataobject.ItemStock;
+import com.sky.miaosha.dataobject.RocketmqTransactionLog;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
+import com.sky.miaosha.exception.enums.StockLogStatusEnum;
 import com.sky.miaosha.mq.MyProducer;
 import com.sky.miaosha.service.ItemService;
 import com.sky.miaosha.service.PromoService;
 import com.sky.miaosha.service.model.ItemModel;
 import com.sky.miaosha.service.model.PromoModel;
+import com.sky.miaosha.utils.CommonUtil;
 import com.sky.miaosha.utils.Convert;
 import com.sky.miaosha.validator.ValidationResult;
 import com.sky.miaosha.validator.ValidationTool;
@@ -44,6 +48,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private RocketmqTransactionLogMapper rocketmqTransactionLogMapper;
 
     /**
      * 创建商品
@@ -118,24 +125,15 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
         //返回影响函数 等于0表示减库存失败
-//        int affectedRow = itemStockMapper.decreaseStock(itemId, amount);
-//        if (affectedRow > 0) {
-//            return true;
-//        } else {
-//            return false;
-//        }
+
         Long num = stringRedisTemplate.opsForValue().increment("promo_item_stock" + itemId, amount * -1);
         // num: 减少之后的库存
-        if (num >= 0) {
+        if (num > 0) {
             // 异步减库存
-//            boolean sendResult = myProducer.asyncReduceStock(itemId, amount);
-//            if (sendResult) {
-//                return true;
-//            } else {
-//                // 消息通知失败， 恢复缓存库存. 保证缓存和DB数据一致性
-//                stringRedisTemplate.opsForValue().increment("promo_item_stock" + itemId, amount);
-//                return false;
-//            }
+            return true;
+        } else if (num == 0) {
+            // 商品已售罄
+            stringRedisTemplate.opsForValue().set("promo_item_stock_invalid" + itemId, "true");
             return true;
         } else {
             // 库存不足，下单失败
@@ -170,5 +168,17 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public void increaseStock(Integer itemId, Integer amount) {
         stringRedisTemplate.opsForValue().increment("promo_item_stock" + itemId, amount);
+    }
+
+    @Override
+    public String initStockStatus(Integer itemId, Integer amount) {
+        RocketmqTransactionLog log = new RocketmqTransactionLog();
+        String uuid = CommonUtil.randomUUID();
+        log.setTransactionId(uuid);
+        log.setAmount(amount);
+        log.setItemId(itemId);
+        log.setStatus(StockLogStatusEnum.INIT.getCode());
+        rocketmqTransactionLogMapper.insertSelective(log);
+        return uuid;
     }
 }

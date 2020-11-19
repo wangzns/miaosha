@@ -1,6 +1,7 @@
 package com.sky.miaosha.utils;
 
 import java.util.Random;
+import java.util.UUID;
 
 /**
  * description:
@@ -18,6 +19,12 @@ public class CommonUtil {
         int opt = random.nextInt(90000);
         opt += 10000;
         return String.valueOf(opt);
+    }
+
+    public static String randomUUID() {
+        String uid = UUID.randomUUID().toString();
+        String s = uid.replaceAll("-", "");
+        return s;
     }
 
 }

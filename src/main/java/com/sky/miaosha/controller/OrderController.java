@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
 import com.sky.miaosha.mq.MyProducer;
+import com.sky.miaosha.service.ItemService;
 import com.sky.miaosha.service.OrderService;
 import com.sky.miaosha.service.model.UserModel;
 import com.sky.miaosha.vo.global.ResponseVO;
@@ -34,6 +35,8 @@ public class OrderController {
     private StringRedisTemplate redisTemplate;
     @Autowired
     private MyProducer myProducer;
+    @Autowired
+    private ItemService itemService;
 
     //封装下单请求
     @RequestMapping(value = "/createorder", method = RequestMethod.POST,  consumes = {"application/x-www-form-urlencoded"})
@@ -53,10 +56,16 @@ public class OrderController {
         if (StringUtils.isEmpty(str)) {
             throw new BusinessException(ExceptionEnum.USER_NOT_LOGIN, "用户还没登录，无法下单");
         }
+        Boolean aBoolean = redisTemplate.hasKey("promo_item_stock_invalid" + itemId);
+        if (aBoolean) {
+            // 已售罄
+            throw new BusinessException(ExceptionEnum.ITEM_HAS_SEAL_OUT);
+        }
         UserModel userModel = JSON.parseObject(str, UserModel.class);
+        String transactionId = itemService.initStockStatus(itemId, amount);
         //获取登录的用户信息
 //        orderService.createOrder(userModel.getId(), itemId, promoId, amount);
-        Boolean success = myProducer.transactionAsyncRedusceStock(userModel.getId(), itemId, promoId, amount);
+        Boolean success = myProducer.transactionAsyncRedusceStock(userModel.getId(), itemId, promoId, amount, transactionId);
         if (success) {
             return ResponseVO.success();
         } else {

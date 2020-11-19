@@ -1,11 +1,14 @@
 package com.sky.miaosha.service.impl;
 
 import com.sky.miaosha.dao.OrderInfoMapper;
+import com.sky.miaosha.dao.RocketmqTransactionLogMapper;
 import com.sky.miaosha.dao.SequenceInfoMapper;
 import com.sky.miaosha.dataobject.OrderInfo;
+import com.sky.miaosha.dataobject.RocketmqTransactionLog;
 import com.sky.miaosha.dataobject.SequenceInfo;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
+import com.sky.miaosha.exception.enums.StockLogStatusEnum;
 import com.sky.miaosha.service.ItemService;
 import com.sky.miaosha.service.OrderService;
 import com.sky.miaosha.service.UserService;
@@ -23,6 +26,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -39,9 +43,12 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private SequenceInfoMapper sequenceInfoMapper;
 
+    @Autowired
+    private RocketmqTransactionLogMapper rocketmqTransactionLogMapper;
+
     @Override
     @Transactional
-    public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount){
+    public OrderModel createOrder(Integer userId, Integer itemId, Integer promoId, Integer amount, String transactionId){
 
         //1:校验下单的商品是否存在、用户是否合法、购买数量是否正确
 //        ItemModel itemModel = itemService.getItemById(itemId);
@@ -95,6 +102,13 @@ public class OrderServiceImpl implements OrderService {
 
         //4:增加商品销量
         itemService.increaseSales(itemId, amount);
+        // 更改操作状态为2
+        RocketmqTransactionLog cond = new RocketmqTransactionLog();
+        cond.setTransactionId(transactionId);
+        RocketmqTransactionLog rocketmqTransactionLog = rocketmqTransactionLogMapper.selectOne(cond);
+        rocketmqTransactionLog.setStatus(StockLogStatusEnum.COMMIT.getCode());
+        rocketmqTransactionLogMapper.updateByPrimaryKeySelective(rocketmqTransactionLog);
+
         // 返回前端
         return orderModel;
     }

@@ -38,6 +38,11 @@ public interface ItemService {
 
     void increaseStock(Integer itemId, Integer amount);
 
+    String initStockStatus(Integer itemId, Integer amount);
+
+
+
+
 
 
 }

@@ -8,6 +8,5 @@ public interface ItemStockMapper extends Mapper<ItemStock> {
 
     ItemStock selectByItemId(Integer itemId);
 
-    int
-    decreaseStock(@Param("itemId") Integer itemId, @Param("amount") Integer amount);
+    int decreaseStock(@Param("itemId") Integer itemId, @Param("amount") Integer amount);
 }

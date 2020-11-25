@@ -53,28 +53,28 @@ public class OrderServiceImpl implements OrderService {
         //1:校验下单的商品是否存在、用户是否合法、购买数量是否正确
 //        ItemModel itemModel = itemService.getItemById(itemId);
         ItemModel itemModel = itemService.getItemByIdFromCache(itemId);
-
+//
         if (itemModel == null) {
             throw new BusinessException(ExceptionEnum.PARAM_ERROR, "商品不存在！");
         }
 //        UserModel userModel = userService.getUser(userId);
-        UserModel userModel = userService.getUserFromCache(userId);
-        if (userModel == null) {
-            throw new BusinessException(ExceptionEnum.PARAM_ERROR, "用户不存在！");
-        }
+//        UserModel userModel = userService.getUserFromCache(userId);
+//        if (userModel == null) {
+//            throw new BusinessException(ExceptionEnum.PARAM_ERROR, "用户不存在！");
+//        }
         if (amount < 0) {
             throw new BusinessException(ExceptionEnum.PARAM_ERROR, "购买数量错误！");
         }
         //校验秒杀活动信息
-        if (promoId != null) {
-            //(1)校验秒杀活动是否适用该商品
-            if (promoId.intValue() != itemModel.getPromoModel().getId()) {
-                throw new BusinessException(ExceptionEnum.PARAM_ERROR, "活动信息错误！");
-                //(2)校验活动是在正在进行
-            } else if (itemModel.getPromoModel().getStatus().intValue() != 2) {
-                throw new BusinessException(ExceptionEnum.PARAM_ERROR, "秒杀时间错误！");
-            }
-        }
+//        if (promoId != null) {
+//            //(1)校验秒杀活动是否适用该商品
+//            if (promoId.intValue() != itemModel.getPromoModel().getId()) {
+//                throw new BusinessException(ExceptionEnum.PARAM_ERROR, "活动信息错误！");
+//                //(2)校验活动是在正在进行
+//            } else if (itemModel.getPromoModel().getStatus().intValue() != 2) {
+//                throw new BusinessException(ExceptionEnum.PARAM_ERROR, "秒杀时间错误！");
+//            }
+//        }
 
         //2:落单减库存
         boolean result = itemService.decreaseStock(itemId, amount);
@@ -90,10 +90,10 @@ public class OrderServiceImpl implements OrderService {
         //如果有活动，则设置秒杀活动价格，否则设置普通商品价格
         if (promoId != null) {
             orderModel.setItemPrice(itemModel.getPromoModel().getPromoItemPrice());
+            orderModel.setPromoId(promoId);
         } else {
             orderModel.setItemPrice(itemModel.getPrice());
         }
-        orderModel.setPromoId(promoId);
         orderModel.setOrderPrice(orderModel.getItemPrice().multiply(new BigDecimal(amount)));
         //生成交易订单号
         orderModel.setId(generateOrderNo());

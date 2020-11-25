@@ -13,4 +13,15 @@ public interface PromoService {
      */
     void publishPromo(Integer promoId);
 
+    /**
+     * 生成秒杀令牌
+     * @param promoId
+     * @param itemId
+     * @param userId
+     * @return
+     */
+    String generatePromoToken(Integer promoId, Integer itemId, Integer userId);
+
+
+
 }

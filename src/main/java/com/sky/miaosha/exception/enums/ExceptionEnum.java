@@ -37,6 +37,13 @@ public enum ExceptionEnum implements CommonException {
     MQ_SEND_FAIL(700001, "异步消息投递失败"),
 
 
+    PROMO_TOKEN_GENERATE_FAIL(800001, "令牌生成失败"),
+
+    PROMO_TOKEN_NOT_EXIST(800011, "秒杀令牌不存在"),
+
+    PROMO_TOKEN_NOT_ENOUGH(800021, "该秒杀商品令牌已被颁发完毕"),
+
+
 
 
 

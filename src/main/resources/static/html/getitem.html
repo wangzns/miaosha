@@ -107,31 +107,61 @@
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
-                url: "/order/createorder",
+                url: "/order/generatetoken",
                 headers: {
                     "token" : token
                 },
                 data: {
                     "itemId": g_itemVO.id,
-                    "amount": 1,
                     "promoId": g_itemVO.promoId,
                 },
                 xhrFields: {withCredentials: true},
                 success: function (data) {
                     if (data.code == "0") {
-                        alert("下单成功！")
-                        window.location.reload();
+                        var promotoken = data.data;
+                        $.ajax({
+                            type: "POST",
+                            contentType: "application/x-www-form-urlencoded",
+                            url: "/order/createorder",
+                            headers: {
+                                "token" : token
+                            },
+                            data: {
+                                "itemId": g_itemVO.id,
+                                "amount": 1,
+                                "promoId": g_itemVO.promoId,
+                                "promoToken":promotoken
+                            },
+                            xhrFields: {withCredentials: true},
+                            success: function (data) {
+                                if (data.code == "0") {
+                                    alert("下单成功！")
+                                    window.location.reload();
+                                } else {
+                                    alert("下单失败，原因是" + data.msg);
+                                    if (data.code == 100005) {
+                                        window.location.href =  "/login";
+                                    }
+                                }
+                            },
+                            error: function (data) {
+                                alert("下单失败，原因是" + data.msg);
+                            }
+                        });
                     } else {
-                        alert("下单失败，原因是" + data.msg);
+                        alert("令牌生成失败，原因是" + data.msg);
                         if (data.code == 100005) {
                             window.location.href =  "/login";
                         }
                     }
                 },
                 error: function (data) {
-                    alert("下单失败，原因是" + data.msg);
+                    alert("令牌生成失败，原因是" + data.msg);
                 }
             });
+
+
+
             return false;
         });
 

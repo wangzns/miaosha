@@ -154,7 +154,9 @@ public class ItemServiceImpl implements ItemService {
             return itemModel;
         }
         ItemModel item = getItemById(itemId);
-        stringRedisTemplate.opsForValue().set("item_validate_" + itemId, JSON.toJSONString(item), 10, TimeUnit.MINUTES);
+        if (item != null) {
+            stringRedisTemplate.opsForValue().set("item_validate_" + itemId, JSON.toJSONString(item), 10, TimeUnit.MINUTES);
+        }
         return item;
     }
 

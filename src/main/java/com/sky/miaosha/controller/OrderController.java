@@ -19,7 +19,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Controller("order")
 @RequestMapping("/order")
@@ -41,11 +46,19 @@ public class OrderController {
     @Autowired
     private PromoService promoService;
 
+    private ExecutorService executorService;
 
-    //封装下单请求
+    @PostConstruct
+    public void init() {
+        // 最大容量为20个线程的线程池. 拥塞窗口=20
+        executorService = Executors.newFixedThreadPool(20);
+    }
+
+
+    // 生成秒杀令牌
     @RequestMapping(value = "/generatetoken", method = RequestMethod.POST,  consumes = {"application/x-www-form-urlencoded"})
     @ResponseBody
-    public ResponseVO createOrder(@RequestParam(name = "itemId") Integer itemId,
+    public ResponseVO generatetoken(@RequestParam(name = "itemId") Integer itemId,
                                   @RequestParam(name = "promoId", required = false) Integer promoId) throws BusinessException {
         String token = httpServletRequest.getHeader("token");
         if (StringUtils.isEmpty(token)) {
@@ -104,15 +117,30 @@ public class OrderController {
                 throw new BusinessException(ExceptionEnum.PROMO_TOKEN_NOT_EXIST);
             }
         }
-
-        String transactionId = itemService.initStockStatus(itemId, amount);
-        //获取登录的用户信息
+        Future<Boolean> future = executorService.submit(() -> {
+            String transactionId = itemService.initStockStatus(itemId, amount);
+            //获取登录的用户信息
 //        orderService.createOrder(userModel.getId(), itemId, promoId, amount);
-        Boolean success = myProducer.transactionAsyncRedusceStock(userModel.getId(), itemId, promoId, amount, transactionId);
-        if (success) {
-            return ResponseVO.success();
-        } else {
-            return ResponseVO.fail("下单失败");
+            Boolean result = myProducer.transactionAsyncRedusceStock(userModel.getId(), itemId, promoId, amount, transactionId);
+            return result;
+        });
+        try {
+            Boolean orderResult = future.get();
+            if (orderResult) {
+                return ResponseVO.success();
+            } else {
+                return ResponseVO.fail("下单失败");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            throw new BusinessException(ExceptionEnum.UNKNOW_ERROR);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
         }
+        return ResponseVO.fail("下单失败");
     }
+
+
+
+
 }

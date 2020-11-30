@@ -2,6 +2,7 @@ package com.sky.miaosha.controller;
 
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.util.concurrent.RateLimiter;
 import com.sky.miaosha.exception.BusinessException;
 import com.sky.miaosha.exception.enums.ExceptionEnum;
 import com.sky.miaosha.mq.MyProducer;
@@ -9,6 +10,7 @@ import com.sky.miaosha.service.ItemService;
 import com.sky.miaosha.service.OrderService;
 import com.sky.miaosha.service.PromoService;
 import com.sky.miaosha.service.model.UserModel;
+import com.sky.miaosha.utils.CodeUtil;
 import com.sky.miaosha.vo.global.ResponseVO;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.DateTime;
@@ -20,11 +22,13 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import javax.servlet.http.HttpServletResponse;
+import java.awt.image.RenderedImage;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.*;
 
 @Controller("order")
 @RequestMapping("/order")
@@ -48,18 +52,53 @@ public class OrderController {
 
     private ExecutorService executorService;
 
+    /**
+     * 借助guava的RateLimiter实现限流，实则原理是令牌桶算法
+     */
+    private RateLimiter orderRateLimiter;
+
     @PostConstruct
     public void init() {
         // 最大容量为20个线程的线程池. 拥塞窗口=20
         executorService = Executors.newFixedThreadPool(20);
+        // 限流的并发量
+        orderRateLimiter = RateLimiter.create(200.0);
     }
+
+
+
+    // 生成验证码
+    @RequestMapping(value = "/generateverifycode", method = {RequestMethod.POST, RequestMethod.GET})
+    @ResponseBody
+    public void generateverifycode(HttpServletResponse response, @RequestParam("token") String token) throws BusinessException {
+
+        if (StringUtils.isEmpty(token)) {
+            throw new BusinessException(ExceptionEnum.USER_NOT_LOGIN, "用户还没登录");
+        }
+        String str = redisTemplate.opsForValue().get(token);
+        if (StringUtils.isEmpty(str)) {
+            throw new BusinessException(ExceptionEnum.USER_NOT_LOGIN, "用户还没登录");
+        }
+        UserModel userModel = JSON.parseObject(str, UserModel.class);
+        Map<String, Object> codeMap = CodeUtil.generateCodeAndPic();
+        try {
+            // 将验证码存入redis中
+            redisTemplate.opsForValue().set("verify_code_" + userModel.getId(), codeMap.get("code").toString(), 10, TimeUnit.MINUTES);
+            // 将验证码图像返回到response的输出流中
+            ImageIO.write((RenderedImage) codeMap.get("codePic"), "jpeg", response.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
     // 生成秒杀令牌
     @RequestMapping(value = "/generatetoken", method = RequestMethod.POST,  consumes = {"application/x-www-form-urlencoded"})
     @ResponseBody
     public ResponseVO generatetoken(@RequestParam(name = "itemId") Integer itemId,
-                                  @RequestParam(name = "promoId", required = false) Integer promoId) throws BusinessException {
+                                  @RequestParam(name = "promoId", required = false) Integer promoId,
+                                    @RequestParam(name = "verifyCode", required = true) String verifyCode) throws BusinessException {
         String token = httpServletRequest.getHeader("token");
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(ExceptionEnum.USER_NOT_LOGIN, "用户还没登录");
@@ -68,11 +107,20 @@ public class OrderController {
         if (StringUtils.isEmpty(str)) {
             throw new BusinessException(ExceptionEnum.USER_NOT_LOGIN, "用户还没登录");
         }
+        UserModel userModel = JSON.parseObject(str, UserModel.class);
+
+        // 验证码校验
+        String codeInRedis = redisTemplate.opsForValue().get("verify_code_" + userModel.getId());
+        if (StringUtils.isEmpty(codeInRedis)) {
+            throw new BusinessException(ExceptionEnum.PARAM_ERROR, "参数错误,验证码不存在");
+        }
+        if (!codeInRedis.equalsIgnoreCase(verifyCode)) {
+            throw new BusinessException(ExceptionEnum.PARAM_ERROR, "验证码错误");
+        }
         Long leftTimes = redisTemplate.opsForValue().increment("promo_door_count_" + promoId, -1);
         if (leftTimes < 0) {
             throw new BusinessException(ExceptionEnum.PROMO_TOKEN_NOT_ENOUGH);
         }
-        UserModel userModel = JSON.parseObject(str, UserModel.class);
         String promoToken = promoService.generatePromoToken(promoId, itemId, userModel.getId());
         if (StringUtils.isEmpty(promoToken)) {
             // 为空则表示不满足生成令牌的必要条件， 可能是用户风控，库存，伪造请求等多种原因造成。不允许进行秒杀
@@ -89,7 +137,10 @@ public class OrderController {
                                   @RequestParam(name = "amount") Integer amount,
                                   @RequestParam(name = "promoId", required = false) Integer promoId,
                                   @RequestParam(name = "promoToken", required = false) String promoToken) throws BusinessException {
-
+        // 获取令牌
+        if (!orderRateLimiter.tryAcquire()) {
+            throw new BusinessException(ExceptionEnum.ORDER_RATE_LIMIT);
+        }
         //判断用户是否登录
 //        Boolean isLogin = (Boolean) httpServletRequest.getSession().getAttribute("IS_LOGIN");
         String token = httpServletRequest.getHeader("token");

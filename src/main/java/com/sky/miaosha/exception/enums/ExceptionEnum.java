@@ -43,6 +43,8 @@ public enum ExceptionEnum implements CommonException {
 
     PROMO_TOKEN_NOT_ENOUGH(800021, "该秒杀商品令牌已被颁发完毕"),
 
+    ORDER_RATE_LIMIT(900001, "活动太过火爆,请稍后再试"),
+
 
 
 

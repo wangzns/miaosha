@@ -65,6 +65,12 @@
             下单
         </button>
     </div>
+    <div id="verifyCodeDiv" style="display: none;">
+        <img src="" id="verifyCodeImg"> <input id="verifyContent" value="">
+        <button class="btn blue" id="verifyCodeButton" type="submit" style="margin-top: 20px;">
+            验证
+        </button>
+    </div>
 </div>
 </body>
 
@@ -95,15 +101,15 @@
                 alert("获取失败，原因是" + data.msg);
             }
         });
-
         //点击下单按钮发送创建订单请求
-        $("#createorder").on("click", function () {
+        $("#verifyCodeButton").on("click", function () {
             var token = window.localStorage["token"];
             if (token === null || token === undefined || token === "") {
                 alert("还未登录，不能下单");
                 window.location.href =  "/login";
                 return ;
             }
+
             $.ajax({
                 type: "POST",
                 contentType: "application/x-www-form-urlencoded",
@@ -114,6 +120,7 @@
                 data: {
                     "itemId": g_itemVO.id,
                     "promoId": g_itemVO.promoId,
+                    "verifyCode": $("#verifyContent").val()
                 },
                 xhrFields: {withCredentials: true},
                 success: function (data) {
@@ -160,10 +167,25 @@
                 }
             });
 
-
-
             return false;
         });
+
+
+
+        // 验证码请求
+        $("#createorder").on("click", function () {
+            var token = window.localStorage["token"];
+            if (token === null || token === undefined || token === "") {
+                alert("还未登录，不能下单");
+                window.location.href =  "/login";
+                return ;
+            }
+            // 生成验证码
+            $("#verifyCodeImg").attr("src", "/order/generateverifycode?token=" + token);
+            $("#verifyCodeDiv").show();
+            return false;
+        });
+
 
     });
 

@@ -11,7 +11,7 @@ server:
 
 spring:
   profiles:
-    active: local
+    active: online
   redis:
     host: 120.77.247.132
     port: 6379

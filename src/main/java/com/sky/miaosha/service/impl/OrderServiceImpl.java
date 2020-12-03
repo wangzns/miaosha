@@ -100,7 +100,7 @@ public class OrderServiceImpl implements OrderService {
         OrderInfo orderInfo = Convert.convertOrderInfoFromOrderModel(orderModel);
         orderInfoMapper.insertSelective(orderInfo);
 
-        //4:增加商品销量
+        //4:增加商品销量.  //TODO 增加销量优化为异步
         itemService.increaseSales(itemId, amount);
         // 更改操作状态为2
         RocketmqTransactionLog cond = new RocketmqTransactionLog();
